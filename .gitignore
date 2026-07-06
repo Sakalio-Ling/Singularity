@@ -1,0 +1,38 @@
+﻿# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Minecraft server
+*.jar
+logs/
+world/
+world_nether/
+world_the_end/
+server.properties
+ops.json
+whitelist.json
+banned-ips.json
+banned-players.json
+eula.txt
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs (keep structured logs, ignore server logs)
+*.log
