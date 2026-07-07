@@ -1,5 +1,6 @@
-﻿"""Planner — LLM-powered goal decomposition and action planning."""
+﻿"""Planner - LLM-powered goal decomposition and action planning with Minecraft knowledge injection."""
 import json
+import os
 import logging
 from typing import Optional
 
@@ -7,6 +8,16 @@ from singularity.llm.provider import LLMProvider
 from singularity.core.task_system import TaskSystem, Task, TaskStatus
 
 logger = logging.getLogger("singularity.planner")
+
+# Load crafting recipes at module level
+_RECIPES_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'crafting_recipes.json')
+_CRAFTING_KNOWLEDGE = ""
+try:
+    with open(_RECIPES_PATH, 'r', encoding='utf-8') as f:
+        _data = json.load(f)
+        _CRAFTING_KNOWLEDGE = json.dumps(_data, indent=1)
+except Exception:
+    _CRAFTING_KNOWLEDGE = "{}"
 
 
 class Planner:
@@ -49,22 +60,33 @@ Suggest a new plan. Output JSON: {{"status":"replan","subtasks":[...],"actions":
             return {"status": "error", "subtasks": [], "actions": [], "reasoning": "Parse error"}
 
     def _planner_system_prompt(self) -> str:
-        return """You are a Minecraft survival planner. Given a goal and current world state, decompose it into subtasks and immediate actions.
-
-Output JSON:
-{
-  "status": "planning",
-  "reasoning": "brief strategic explanation",
-  "subtasks": [
-    {"title": "...", "type": "...", "priority": 1-5, "success_criteria": {...}}
-  ],
-  "actions": [
-    {"type": "action_name", "parameters": {...}}
-  ]
-}
+        return f"""You are a Minecraft survival planner. Given a goal and current world state, decompose it into subtasks and immediate actions.
 
 Available actions: move_to, look_at, dig, place, craft, attack, equip, use_item, chat, wait.
-Be practical and safe. Check inventory before crafting."""
+
+MINECRAFT CRAFTING RECIPES:
+{_CRAFTING_KNOWLEDGE}
+
+TOOL PROGRESSION: hand -> wooden -> stone -> iron -> diamond
+To mine stone/cobblestone you need at least a wooden pickaxe.
+To mine iron_ore you need at least a stone pickaxe.
+To get oak_planks, craft them from oak_log (1 log = 4 planks).
+To get sticks, craft from 2 planks (2 planks = 4 sticks).
+You can punch trees to get oak_log without any tools.
+
+Output JSON:
+{{
+  "status": "planning" or "complete" or "blocked",
+  "reasoning": "brief strategic explanation",
+  "subtasks": [
+    {{"title": "...", "type": "...", "priority": 1-5, "success_criteria": {{...}}}}
+  ],
+  "actions": [
+    {{"type": "action_name", "parameters": {{...}}}}
+  ]
+}}
+
+Be practical and safe. Check inventory before crafting. Follow tool progression."""
 
     def _build_planning_prompt(self, goal: str, world_state: dict, memory_context: str) -> str:
         return f"""Goal: {goal}
